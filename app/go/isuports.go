@@ -358,7 +358,6 @@ type dbOrTx interface {
 	GetContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
 	SelectContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
 	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
-	Begin() (*sql.Tx, error)
 }
 
 type PlayerRow struct {
@@ -568,18 +567,11 @@ func billingReportByCompetition(ctx context.Context, tenantDB dbOrTx, tenantID i
 	}
 
 	// player_scoreを読んでいるときに更新が走ると不整合が起こるのでロックを取得する
-	success := false
-	tx, err := tenantDB.Begin()
+	fl, err := flockByTenantID(tenantID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get transaction: %w", err)
+		return nil, fmt.Errorf("error flockByTenantID: %w", err)
 	}
-	defer func() {
-		if !success {
-			tx.Rollback()
-		} else {
-			tx.Commit()
-		}
-	}()
+	defer fl.Close()
 
 	// スコアを登録した参加者のIDを取得する
 	scoredPlayerIDs := []string{}
@@ -1054,19 +1046,11 @@ func competitionScoreHandler(c echo.Context) error {
 	}
 
 	// / DELETEしたタイミングで参照が来ると空っぽのランキングになるのでロックする
-	success := false
-	tx, err := tenantDB.Begin()
+	fl, err := flockByTenantID(v.tenantID)
 	if err != nil {
-		return fmt.Errorf("failed to get transaction: %w", err)
+		return fmt.Errorf("error flockByTenantID: %w", err)
 	}
-	defer func() {
-		if !success {
-			tx.Rollback()
-		} else {
-			tx.Commit()
-		}
-	}()
-
+	defer fl.Close()
 	var rowNum int64
 	playerScoreRows := []PlayerScoreRow{}
 	for {
@@ -1250,19 +1234,11 @@ func playerHandler(c echo.Context) error {
 	}
 
 	// player_scoreを読んでいるときに更新が走ると不整合が起こるのでロックを取得する
-	success := false
-	tx, err := tenantDB.Begin()
+	fl, err := flockByTenantID(v.tenantID)
 	if err != nil {
-		return fmt.Errorf("failed to get transaction: %w", err)
+		return fmt.Errorf("error flockByTenantID: %w", err)
 	}
-	defer func() {
-		if !success {
-			tx.Rollback()
-		} else {
-			tx.Commit()
-		}
-	}()
-
+	defer fl.Close()
 	pss := make([]PlayerScoreRow, 0, len(cs))
 	for _, c := range cs {
 		ps := PlayerScoreRow{}
@@ -1386,19 +1362,11 @@ func competitionRankingHandler(c echo.Context) error {
 	}
 
 	// player_scoreを読んでいるときに更新が走ると不整合が起こるのでロックを取得する
-	success := false
-	tx, err := tenantDB.Begin()
+	fl, err := flockByTenantID(v.tenantID)
 	if err != nil {
-		return fmt.Errorf("failed to get transaction: %w", err)
+		return fmt.Errorf("error flockByTenantID: %w", err)
 	}
-	defer func() {
-		if !success {
-			tx.Rollback()
-		} else {
-			tx.Commit()
-		}
-	}()
-
+	defer fl.Close()
 	pss := []PlayerScoreRow{}
 	if err := tenantDB.SelectContext(
 		ctx,
