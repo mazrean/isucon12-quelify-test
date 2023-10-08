@@ -539,6 +539,18 @@ func billingReportByCompetition(ctx context.Context, tenantDB dbOrTx, tenantID i
 		return nil, fmt.Errorf("error retrieveCompetition: %w", err)
 	}
 
+	if !comp.FinishedAt.Valid {
+		return &BillingReport{
+			CompetitionID:     comp.ID,
+			CompetitionTitle:  comp.Title,
+			PlayerCount:       0,
+			VisitorCount:      0,
+			BillingPlayerYen:  0,
+			BillingVisitorYen: 0,
+			BillingYen:        0,
+		}, nil
+	}
+
 	// ランキングにアクセスした参加者のIDを取得する
 	vhs := []VisitHistorySummaryRow{}
 	if err := adminDB.SelectContext(
@@ -584,14 +596,12 @@ func billingReportByCompetition(ctx context.Context, tenantDB dbOrTx, tenantID i
 
 	// 大会が終了している場合のみ請求金額が確定するので計算する
 	var playerCount, visitorCount int64
-	if comp.FinishedAt.Valid {
-		for _, category := range billingMap {
-			switch category {
-			case "player":
-				playerCount++
-			case "visitor":
-				visitorCount++
-			}
+	for _, category := range billingMap {
+		switch category {
+		case "player":
+			playerCount++
+		case "visitor":
+			visitorCount++
 		}
 	}
 	return &BillingReport{
@@ -654,8 +664,14 @@ func tenantsBillingHandler(c echo.Context) error {
 	//   を合計したものを
 	// テナントの課金とする
 	ts := []TenantRow{}
-	if err := adminDB.SelectContext(ctx, &ts, "SELECT * FROM tenant ORDER BY id DESC"); err != nil {
-		return fmt.Errorf("error Select tenant: %w", err)
+	if beforeID == 0 {
+		if err := adminDB.SelectContext(ctx, &ts, "SELECT * FROM tenant ORDER BY id DESC LIMIT 10"); err != nil {
+			return fmt.Errorf("error Select tenant: %w", err)
+		}
+	} else {
+		if err := adminDB.SelectContext(ctx, &ts, "SELECT * FROM tenant WHERE id < ? ORDER BY id DESC LIMIT 10", beforeID); err != nil {
+			return fmt.Errorf("error Select tenant: %w", err)
+		}
 	}
 	tenantBillings := make([]TenantWithBilling, 0, len(ts))
 	for _, t := range ts {
