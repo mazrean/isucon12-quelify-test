@@ -234,6 +234,43 @@ type Viewer struct {
 	tenantID   int64
 }
 
+var key any
+
+func init() {
+	keyFilename := getEnv("ISUCON_JWT_KEY_FILE", "../public.pem")
+	keysrc, err := os.ReadFile(keyFilename)
+	if err != nil {
+		panic(fmt.Errorf("error os.ReadFile: keyFilename=%s: %w", keyFilename, err))
+	}
+	key, _, err = jwk.DecodePEM(keysrc)
+	if err != nil {
+		panic(fmt.Errorf("error jwk.DecodePEM: %w", err))
+	}
+}
+
+var jwtCache *sc.Cache[string, jwt.Token]
+
+func init() {
+	var err error
+	jwtCache, err = isucache.New("jwt_cache", func(ctx context.Context, tokenStr string) (jwt.Token, error) {
+		token, err := jwt.Parse(
+			[]byte(tokenStr),
+			jwt.WithKey(jwa.RS256, key),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error jwt.Parse: %s", err.Error())
+		}
+		if token.Subject() == "" {
+			return nil, fmt.Errorf("invalid token: subject is not found in token: %s", tokenStr)
+		}
+
+		return token, nil
+	}, time.Hour, time.Hour)
+	if err != nil {
+		panic(fmt.Errorf("failed to create jwt cache: %w", err))
+	}
+}
+
 // リクエストヘッダをパースしてViewerを返す
 func parseViewer(c echo.Context) (*Viewer, error) {
 	cookie, err := c.Request().Cookie(cookieName)
@@ -245,27 +282,11 @@ func parseViewer(c echo.Context) (*Viewer, error) {
 	}
 	tokenStr := cookie.Value
 
-	keyFilename := getEnv("ISUCON_JWT_KEY_FILE", "../public.pem")
-	keysrc, err := os.ReadFile(keyFilename)
+	token, err := jwtCache.Get(c.Request().Context(), tokenStr)
 	if err != nil {
-		return nil, fmt.Errorf("error os.ReadFile: keyFilename=%s: %w", keyFilename, err)
-	}
-	key, _, err := jwk.DecodePEM(keysrc)
-	if err != nil {
-		return nil, fmt.Errorf("error jwk.DecodePEM: %w", err)
-	}
-
-	token, err := jwt.Parse(
-		[]byte(tokenStr),
-		jwt.WithKey(jwa.RS256, key),
-	)
-	if err != nil {
-		return nil, echo.NewHTTPError(http.StatusUnauthorized, fmt.Errorf("error jwt.Parse: %s", err.Error()))
-	}
-	if token.Subject() == "" {
 		return nil, echo.NewHTTPError(
 			http.StatusUnauthorized,
-			fmt.Sprintf("invalid token: subject is not found in token: %s", tokenStr),
+			err.Error(),
 		)
 	}
 
