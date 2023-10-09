@@ -36,7 +36,9 @@ CREATE TABLE player_score2 (
   player_id VARCHAR(255) NOT NULL,
   competition_id VARCHAR(255) NOT NULL,
   score BIGINT NOT NULL,
+  row_num BIGINT NOT NULL,
   created_at BIGINT NOT NULL,
   updated_at BIGINT NOT NULL,
   PRIMARY KEY(tenant_id, player_id, competition_id)
 );
+CREATE INDEX idx_player_score_row_num ON player_score2(row_num);
