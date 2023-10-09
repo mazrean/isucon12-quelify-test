@@ -1122,7 +1122,7 @@ func competitionScoreHandler(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, SuccessResult{
 		Status: true,
-		Data:   ScoreHandlerResult{Rows: rowNum},
+		Data:   ScoreHandlerResult{Rows: rowNum - 1},
 	})
 }
 
