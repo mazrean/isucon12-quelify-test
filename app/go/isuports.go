@@ -80,12 +80,29 @@ func tenantDBPath(id int64) string {
 	return filepath.Join(tenantDBDir, fmt.Sprintf("%d.db", id))
 }
 
+var tenantDBCache *sc.Cache[int64, *sqlx.DB]
+
+func init() {
+	var err error
+	tenantDBCache, err = isucache.New("tenant_db_cache", func(ctx context.Context, id int64) (*sqlx.DB, error) {
+		p := tenantDBPath(id)
+		db, err := isudb.DBMetricsSetup(sqlx.Open)(sqliteDriverName, fmt.Sprintf("file:%s?mode=rw", p))
+		if err != nil {
+			return nil, fmt.Errorf("failed to open tenant DB: %w", err)
+		}
+
+		return db, nil
+	}, time.Hour, time.Hour)
+	if err != nil {
+		panic(fmt.Errorf("failed to create tenant db cache: %w", err))
+	}
+}
+
 // テナントDBに接続する
 func connectToTenantDB(id int64) (*sqlx.DB, error) {
-	p := tenantDBPath(id)
-	db, err := isudb.DBMetricsSetup(sqlx.Open)(sqliteDriverName, fmt.Sprintf("file:%s?mode=rw", p))
+	db, err := tenantDBCache.Get(context.Background(), id)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open tenant DB: %w", err)
+		return nil, fmt.Errorf("failed to get tenant db cache:%w", err)
 	}
 	return db, nil
 }
