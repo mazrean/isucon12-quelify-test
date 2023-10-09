@@ -12,11 +12,12 @@ services:
       METRICS_ADDR: :6060
       ISUTOOLS_ENABLE: false
       ISUTOOLS_GC: false
+      UNIX_SOCKET: /home/isucon/tmp/unix/isucari.sock
     network_mode: host
     volumes:
       - /home/isucon/webapp/tenant_db:/home/isucon/webapp/tenant_db
       - /home/isucon/webapp/sql:/home/isucon/webapp/sql
       - /home/isucon/webapp/public.pem:/home/isucon/webapp/public.pem:ro
       - /home/isucon/initial_data:/home/isucon/initial_data
-      - /home/isucon/tmp:/home/isucon/tmp
+      - /home/isucon/tmp/unix:/home/isucon/tmp/unix
     init: true
