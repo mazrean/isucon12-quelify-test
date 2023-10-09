@@ -1355,7 +1355,7 @@ func competitionRankingHandler(c echo.Context) error {
 	if err := tenantDB.SelectContext(
 		ctx,
 		&pss,
-		"SELECT player_score2.*, player.display_name FROM player_score2 JOIN player ON player_score2.player_id=player.id WHERE player_score2.tenant_id = ? AND player_score2.competition_id = ? ORDER BY player_score2.score DESC, player_score2.row_num DESC LIMIT 100 OFFSET ?",
+		"SELECT player_score2.*, player.display_name FROM player_score2 JOIN player ON player_score2.player_id=player.id WHERE player_score2.tenant_id = ? AND player_score2.competition_id = ? ORDER BY player_score2.score DESC, player_score2.row_num ASC LIMIT 100 OFFSET ?",
 		tenant.ID,
 		competitionID,
 		rankAfter,
