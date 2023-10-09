@@ -30,6 +30,7 @@ import (
 	isucache "github.com/mazrean/isucon-go-tools/cache"
 	isudb "github.com/mazrean/isucon-go-tools/db"
 	isuhttp "github.com/mazrean/isucon-go-tools/http"
+	"github.com/motoki317/sc"
 )
 
 const (
@@ -303,6 +304,28 @@ func parseViewer(c echo.Context) (*Viewer, error) {
 	return v, nil
 }
 
+var tenantNameCache *sc.Cache[string, *TenantRow]
+
+func init() {
+	var err error
+	tenantNameCache, err = isucache.New[string, *TenantRow]("tenant_name_cache", func(ctx context.Context, tenantName string) (*TenantRow, error) {
+		var tenant TenantRow
+		if err := adminDB.GetContext(
+			context.Background(),
+			&tenant,
+			"SELECT * FROM tenant WHERE name = ?",
+			tenantName,
+		); err != nil {
+			return nil, fmt.Errorf("failed to Select tenant: name=%s, %w", tenantName, err)
+		}
+
+		return &tenant, nil
+	}, time.Hour, time.Hour)
+	if err != nil {
+		panic(fmt.Errorf("failed to create tenant name cache:%w", err))
+	}
+}
+
 func retrieveTenantRowFromHeader(c echo.Context) (*TenantRow, error) {
 	// JWTに入っているテナント名とHostヘッダのテナント名が一致しているか確認
 	baseHost := getEnv("ISUCON_BASE_HOSTNAME", ".t.isucon.dev")
@@ -317,16 +340,12 @@ func retrieveTenantRowFromHeader(c echo.Context) (*TenantRow, error) {
 	}
 
 	// テナントの存在確認
-	var tenant TenantRow
-	if err := adminDB.GetContext(
-		context.Background(),
-		&tenant,
-		"SELECT * FROM tenant WHERE name = ?",
-		tenantName,
-	); err != nil {
-		return nil, fmt.Errorf("failed to Select tenant: name=%s, %w", tenantName, err)
+	tenant, err := tenantNameCache.Get(c.Request().Context(), tenantName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tenant name cache: %w", err)
 	}
-	return &tenant, nil
+
+	return tenant, nil
 }
 
 type TenantRow struct {
