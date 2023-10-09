@@ -10,7 +10,7 @@ services:
       ISUCON_ADMIN_HOSTNAME: admin.t.isucon.pw
       ISUCON_BASE_HOSTNAME: .t.isucon.pw
       METRICS_ADDR: :6060
-      ISUTOOLS_ENABLE: true
+      ISUTOOLS_ENABLE: false
       ISUTOOLS_GC: false
     network_mode: host
     volumes:
