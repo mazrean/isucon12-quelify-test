@@ -1098,12 +1098,10 @@ func competitionScoreHandler(c echo.Context) error {
 
 	// 存在しない参加者が含まれている
 	if playerCount != len(playerIDs) {
-		if errors.Is(err, sql.ErrNoRows) {
-			return echo.NewHTTPError(
-				http.StatusBadRequest,
-				errors.New("player not found"),
-			)
-		}
+		return echo.NewHTTPError(
+			http.StatusBadRequest,
+			errors.New("player not found"),
+		)
 	}
 
 	if _, err := tenantDB.ExecContext(
@@ -1238,7 +1236,7 @@ func playerHandler(c echo.Context) error {
 	if err := tenantDB.SelectContext(
 		ctx,
 		&pss,
-		`SELECT competition.title AS "competition.title",player_score2.score AS "player_score2.score" AS "player_score2.row_num",player_score2.created_at AS "player_score2.created_at",player_score2.updated_at AS "player_score2.updated_at" 
+		`SELECT competition.title AS "competition.title",player_score2.score AS "player_score2.score" 
 		FROM competition JOIN player_score2 ON competition.tenant_id=player_score2.tenant_id AND competition.id=player_score2.competition_id AND player_score2.player_id=? WHERE competition.tenant_id = ? ORDER BY competition.created_at ASC`,
 		p.ID,
 		v.tenantID,
