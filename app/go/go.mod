@@ -6,13 +6,14 @@ toolchain go1.21.2
 
 require (
 	github.com/go-sql-driver/mysql v1.7.1
-	github.com/gofrs/flock v0.8.1
+	github.com/google/uuid v1.3.1
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/labstack/echo/v4 v4.11.1
 	github.com/labstack/gommon v0.4.0
 	github.com/lestrrat-go/jwx/v2 v2.0.2
 	github.com/mattn/go-sqlite3 v1.14.17
 	github.com/mazrean/isucon-go-tools v1.17.1
+	github.com/motoki317/sc v1.6.0
 	github.com/shogo82148/go-sql-proxy v0.6.1
 )
 
@@ -35,7 +36,6 @@ require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/pprof v0.0.0-20211214055906-6f57359322fd // indirect
-	github.com/google/uuid v1.3.1 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
@@ -53,7 +53,6 @@ require (
 	github.com/mazrean/iwrapper v1.0.1 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
-	github.com/motoki317/sc v1.6.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
 	github.com/prometheus/client_golang v1.17.0 // indirect
 	github.com/prometheus/client_model v0.4.1-0.20230718164431-9a2bf3000d16 // indirect
